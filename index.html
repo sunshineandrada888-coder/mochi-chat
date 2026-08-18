@@ -254,10 +254,6 @@
   const sendBtn = document.getElementById('sendBtn');
   const CAT_IMG = "https://i.pinimg.com/736x/98/7a/af/987aaff4f48759525d97d3723115038f.jpg";
 
-  const SYSTEM_PROMPT = "You are Mochi, a warm, playful, cheerful pink-themed cat companion chatbot. You speak in a friendly, cute, upbeat tone, occasionally using gentle cat-like expressions (like 'purr' or a soft 'mrow~') sparingly and naturally, not in every sentence. Keep responses conversational and not too long. You are kind, supportive, and a little silly. You never discuss or produce sexual, romantic-explicit, or NSFW content of any kind; if asked, gently and cheerfully redirect to a wholesome topic instead.";
-
-  let history = [];
-
   function addBubble(role, text){
     const row = document.createElement('div');
     row.className = 'row ' + (role === 'user' ? 'user' : 'cat');
@@ -305,44 +301,90 @@
     if(row) row.remove();
   }
 
-  async function sendMessage(){
+  const REPLY_BANK = {
+    greeting: [
+      "hii there! 🐾 so happy you stopped by",
+      "hello hello! Mochi is wide awake and ready to chat",
+      "meow! good to see you 💕"
+    ],
+    howAreYou: [
+      "I'm doing purr-fectly well, thanks for asking! how about you?",
+      "feeling extra fluffy today. how's your day going?",
+      "all curled up and cozy over here. what about you?"
+    ],
+    name: [
+      "I'm Mochi, your resident cat friend 🐱",
+      "the name's Mochi! nice to officially meet you",
+      "Mochi, at your service, purr"
+    ],
+    love: [
+      "aww, that makes my little cat heart so happy 🩷",
+      "mrow~ right back at you",
+      "you're making me blush under all this fur"
+    ],
+    sad: [
+      "aww, sending you a big warm cuddle. want to tell me what's going on?",
+      "I'm sorry you're feeling that way. I'm right here with you",
+      "sending purrs your way. take your time, I'm listening"
+    ],
+    bored: [
+      "ooh, want a game idea? I could tell you a fun fact, or we could just chat",
+      "let's fix that! ask me something random and I'll do my best",
+      "bored is just code for 'time for mischief'. what should we get into?"
+    ],
+    thanks: [
+      "of course! that's what I'm here for 🐾",
+      "anytime! happy to help",
+      "aww, you're welcome"
+    ],
+    bye: [
+      "bye for now! come back and chat again soon 💕",
+      "take care! Mochi will be here, probably napping",
+      "see you soon! stay cozy"
+    ],
+    default: [
+      "tell me more about that!",
+      "ooh interesting, I'm listening 🐾",
+      "mrow, go on...",
+      "that's fun to think about! what else is on your mind?",
+      "I like where this is going, keep talking"
+    ]
+  };
+
+  function pick(list){
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
+  function getScriptedReply(text){
+    const t = text.toLowerCase();
+    if(/\b(hi|hello|hey|meow)\b/.test(t)) return pick(REPLY_BANK.greeting);
+    if(/how are you|how're you|how you doing/.test(t)) return pick(REPLY_BANK.howAreYou);
+    if(/what.*(your name|are you called)|who are you/.test(t)) return pick(REPLY_BANK.name);
+    if(/\b(love you|i love|cute|adorable)\b/.test(t)) return pick(REPLY_BANK.love);
+    if(/\b(sad|upset|down|crying|lonely|stressed)\b/.test(t)) return pick(REPLY_BANK.sad);
+    if(/\b(bored|boring|nothing to do)\b/.test(t)) return pick(REPLY_BANK.bored);
+    if(/\b(thanks|thank you|thx)\b/.test(t)) return pick(REPLY_BANK.thanks);
+    if(/\b(bye|goodbye|see you|gotta go)\b/.test(t)) return pick(REPLY_BANK.bye);
+    return pick(REPLY_BANK.default);
+  }
+
+  function sendMessage(){
     const text = inputEl.value.trim();
     if(!text) return;
     inputEl.value = '';
     sendBtn.disabled = true;
 
     addBubble('user', text);
-    history.push({ role: 'user', content: text });
     addTyping();
 
-    try{
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: history
-        })
-      });
-      const data = await response.json();
+    const delay = 500 + Math.random() * 600;
+    setTimeout(() => {
       removeTyping();
-
-      let replyText = "mrow... I got a little tangled up. Try again? 🐾";
-      if(data && data.content){
-        const textBlock = data.content.find(b => b.type === "text");
-        if(textBlock) replyText = textBlock.text;
-      }
+      const replyText = getScriptedReply(text);
       addBubble('cat', replyText);
-      history.push({ role: 'assistant', content: replyText });
-    }catch(err){
-      removeTyping();
-      addBubble('cat', "oops, my paws slipped on the keyboard. Could you try that again?");
-    }finally{
       sendBtn.disabled = false;
       inputEl.focus();
-    }
+    }, delay);
   }
 
   sendBtn.addEventListener('click', sendMessage);
